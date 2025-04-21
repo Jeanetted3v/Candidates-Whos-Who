@@ -1,4 +1,4 @@
-# CandidatesWho: RAG Election Info App
+# Candidates Who'sWho: RAG Election Info App (still in development)
 
 ## Features
 - Crawl and process election data (web, PDFs, multimodal)
