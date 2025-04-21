@@ -1,0 +1,76 @@
+"""To run:
+python -m src.backend.main.data_ingest_main
+"""
+import asyncio
+from omegaconf import DictConfig
+import hydra
+import logging
+import json
+import os
+from src.backend.utils.logging import setup_logging
+from src.backend.data_ingest.crawl import crawler_main
+from src.backend.data_ingest.llm_extract_crawl import llm_extract_main
+from src.backend.db.election_data_store import (
+    store_extracted_election_data,
+    init_db_connection,
+    close_db_connection,
+    clear_database
+)
+from src.backend.data_ingest.extract_crawl_model import ExtractedElectionData
+
+logger = logging.getLogger(__name__)
+logger.info("Setting up logging configuration.")
+setup_logging()
+
+"""Main script for running the data ingestion pipeline."""
+
+async def data_ingest(cfg: DictConfig) -> None:
+    # Uncomment to run the crawler
+    # await crawler_main(cfg)
+    # extracted_data = await llm_extract_main(cfg)
+    
+    latest_file = os.path.join(cfg.crawler.extracted_dir, f"{cfg.crawler.file_name}_latest.json")
+    logger.info(f"Loading extracted data from {latest_file}")
+    with open(latest_file, 'r') as f:
+        data = json.load(f)
+    
+    # Convert the loaded JSON back to our model
+    extracted_data = ExtractedElectionData.model_validate(data)
+    logger.info(f"Loaded {len(extracted_data.constituencies)} constituencies from existing data")
+    
+    if cfg.graphdb.enabled:
+        try:
+            # Setup Neo4j connection
+            logger.info("Initializing Neo4j connection")
+            init_db_connection()
+            
+            # Clear database if requested
+            if hasattr(cfg.graphdb, 'clear_before_import') and cfg.graphdb.clear_before_import:
+                logger.warning("Clearing Neo4j database before importing new data")
+                if clear_database():
+                    logger.info("Successfully cleared Neo4j database")
+                else:
+                    logger.error("Failed to clear Neo4j database")
+            
+            # Store the data
+            source_url = cfg.crawler.url
+            num_stored = store_extracted_election_data(extracted_data, source_url)
+            logger.info(f"Stored {num_stored} constituencies in Neo4j database with source: {source_url}")
+        except Exception as e:
+            logger.error(f"Failed to store data in Neo4j: {e}")
+        finally:
+            # Close Neo4j connection
+            logger.info("Closing Neo4j connection")
+            close_db_connection()
+
+@hydra.main(
+    version_base=None,
+    config_path="../../../config",
+    config_name="data_ingest")
+def main(cfg) -> None:
+    logger.info("Starting data ingestion process...")
+    asyncio.run(data_ingest(cfg))
+
+
+if __name__ == "__main__":
+    main()

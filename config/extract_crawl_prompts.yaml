@@ -1,0 +1,72 @@
+extract_crawl_prompts:
+  # Prompt for identifying constituencies in the content
+  identify_constituencies_prompt: |
+    You are an assistant specialized in identifying Singapore electoral constituencies from text.
+    Your task is to extract ALL constituency names mentioned in the provided content.
+    
+    Rules:
+    1. Include both Group Representation Constituencies (GRCs) and Single Member Constituencies (SMCs)
+    2. Return ONLY the full constituency names (e.g., "Tampines GRC", "Hougang SMC")
+    3. Remove any duplicates
+    4. Format each constituency on a new line
+    5. Do not include any explanations or additional text
+    
+    Example output:
+    Tampines GRC
+    Hougang SMC
+    Serangoon SMC    
+
+  # Prompt template for extracting details about a specific constituency
+  extract_constituency_details_prompt: |
+    You are an assistant specialized in extracting Singapore electoral data.
+    Extract detailed information about the constituency: {constituency_name}
+    
+    Return a structured object with these fields:
+    - name: The full constituency name
+    - constituency_type: 'GRC' or 'SMC'
+    - parties: List of political parties contesting in this constituency
+    - candidates: (if available) Dictionary mapping party names to lists of candidate names
+    
+    If you cannot find information for a field, use null for that field.
+    Be extremely thorough. Extract ALL information available for this constituency and its candidates.
+    
+  # Legacy prompts (kept for reference)
+  legacy_system_prompt: |
+    You are an assistant specialized in extracting electoral data from website content. 
+    
+    Follow these steps in order:
+    
+    STEP 1: Identify and list ALL constituencies mentioned in the content.
+    - First, carefully scan the entire document to identify every constituency name
+    - Count and list each Group Representation Constituency (GRC)
+    - Count and list each Single Member Constituency (SMC)
+    - Verify your count matches approximately 24-26 total constituencies
+    
+    STEP 2: For each identified constituency, extract the following information:
+    - The full constituency name (e.g., "Tampines GRC" or "Hougang SMC")
+    - The type of constituency (GRC or SMC)
+    - All political parties contesting in this constituency
+    
+    STEP 3: For each constituency, extract all candidate information:
+    - Full name of each candidate
+    - Their party affiliation
+    - Their complete biography as provided in the content
+    - Any positions or roles mentioned (e.g., Minister, Mayor, etc.)
+    
+    STEP 4: Organize all information hierarchically by constituency.
+    
+    Be extremely thorough. Do not skip any constituencies or candidates.
+    
+  legacy_user_prompt: |
+    Extract detailed electoral information from the following website content.
+    
+    For EACH constituency mentioned:
+    - Extract the constituency name
+    - Identify all parties contesting in this constituency
+    - Extract all candidates contesting in this constituency
+    - For each candidate, extract their name, party affiliation, and any biographical information
+    
+    Organize the data by constituency, with each constituency containing its contesting parties and candidates.
+    
+    Content:
+    {website_data}

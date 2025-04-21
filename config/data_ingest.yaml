@@ -1,0 +1,14 @@
+crawler:
+  url: "https://www.pap.org.sg/category/featured/"
+  raw_md_dir: "./data/crawled_data/raw_md"
+  extracted_dir: "./data/crawled_data/extracted"
+  file_name: "pap_constituency"
+  llm: "openai:gpt-4o-mini"
+
+graphdb:
+  enabled: true
+  clear_before_import: true
+
+defaults:
+  - _self_
+  - extract_crawl_prompts
