@@ -3,7 +3,11 @@ crawler:
   raw_md_dir: "./data/crawled_data/raw_md"
   extracted_dir: "./data/crawled_data/extracted"
   file_name: "pap_constituency"
-  llm: "openai:gpt-4o-mini"
+  crawl_enabled: false
+  use_existing_json: false
+  extract_json_enabled: false
+  llm: "openai:gpt-4.1-mini"
+
 
 graphdb:
   enabled: true

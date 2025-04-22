@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import re
 from typing import List
 from datetime import datetime
 from dotenv import load_dotenv
@@ -120,6 +121,45 @@ class ElectionDataExtractor:
         return ExtractedElectionData(constituencies=constituency_details)
 
 
+def preprocess_markdown(content: str) -> str:
+    """Clean up markdown content by removing unnecessary elements.
+    
+    Args:
+        content: Raw markdown content
+        
+    Returns:
+        Cleaned markdown content with unnecessary elements removed
+    """
+    # Remove markdown image links: ![alt text](image_url)
+    content = re.sub(r'!\[.*?\]\(.*?\)', '', content)
+    
+    # Remove markdown links but keep the text: [text](url) -> text
+    content = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', content)
+    
+    # Remove HTML image tags: <img src="..." />
+    content = re.sub(r'<img.*?/?>', '', content)
+    
+    # Remove HTML anchor tags but keep the text: <a href="...">text</a> -> text
+    content = re.sub(r'<a.*?>(.*?)</a>', r'\1', content)
+    
+    # Remove Love0 and similar reactions
+    content = re.sub(r'\[ Love\d+\].*?".*?"', '', content)
+    
+    # Remove read time indicators
+    content = re.sub(r'\d+ min read', '', content)
+    content = re.sub(r'< \d+ min read', '', content)
+    
+    # Remove date indicators with bullet points
+    content = re.sub(r'\d+ [A-Za-z]+ \d{4} •', '', content)
+    
+    # Remove multiple consecutive newlines (replace with double newline)
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    # Remove category tags like [#GE2025][Featured][News]
+    content = re.sub(r'\[#[^\]]+\]\[[^\]]+\]\[[^\]]+\]', '', content)
+    
+    return content
+
 def read_markdown_file(file_path: str) -> str:
     """Read a markdown file and return its content."""
     try:
@@ -135,19 +175,13 @@ def read_markdown_file(file_path: str) -> str:
 async def llm_extract_main(cfg: DictConfig) -> None:
     """Main entry point for the election data extraction process."""
     # Get extraction settings from config
-    use_existing_data = cfg.extraction.use_existing_data
-    
-    # Always use the latest file
+    use_existing_data = cfg.crawler.use_existing_json
     input_file = os.path.join(
         cfg.crawler.raw_md_dir,
         f"{cfg.crawler.file_name}_latest.md"
     )
     base_name = cfg.crawler.file_name
-    
-    # Create timestamp for output file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Set up output directory and file
     output_dir = cfg.crawler.extracted_dir
     os.makedirs(output_dir, exist_ok=True)
     output_file = f"{output_dir}/{base_name}_{timestamp}.json"
@@ -159,13 +193,22 @@ async def llm_extract_main(cfg: DictConfig) -> None:
         logger.error("No content to process")
         return
     
-    extractor = ElectionDataExtractor(cfg, use_existing_data=use_existing_data)
+    # Save cleaned markdown
+    logger.info("Preprocessing markdown content to remove unnecessary elements")
+    cleaned_content = preprocess_markdown(content)
+    logger.info(f"Original content length: {len(content)}, Cleaned content length: {len(cleaned_content)}")
+    cleaned_file = f"{output_dir}/{base_name}_cleaned_{timestamp}.md"
+    with open(cleaned_file, "w", encoding="utf-8") as f:
+        f.write(cleaned_content)
+    logger.info(f"Saved cleaned content to {cleaned_file}")
+    
+    # Extact and save in JSON format
+    content = cleaned_content
+    extractor = ElectionDataExtractor(cfg, use_existing_data)
     logger.info(f"Starting extraction process... (using existing data: {use_existing_data})")
     if not use_existing_data:
         logger.info("Will re-extract all constituencies, even if they exist in previous data")
     extracted_data = await extractor.extract_election_data(content)
-    
-    # Save to timestamped file
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(extracted_data.model_dump(), f, indent=2)
     

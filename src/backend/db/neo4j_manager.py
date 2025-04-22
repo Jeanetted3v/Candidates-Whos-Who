@@ -1,6 +1,8 @@
 """
 Neo4j database manager for the Election Information App.
 Provides a clean interface for database operations using the official Neo4j driver.
+To clear the database, run:
+python -m src.backend.db.neo4j_manager
 """
 import json
 import logging
@@ -344,3 +346,13 @@ class Neo4jManager:
 
 # Singleton instance for easy access
 db_manager = Neo4jManager()
+
+# Clear DB   
+if __name__ == "__main__":
+    db_manager = Neo4jManager()
+    success = db_manager.clear_database()
+    
+    if success:
+        print("Database cleared successfully")
+    else:
+        print("Failed to clear database")
