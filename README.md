@@ -1,7 +1,7 @@
 # Candidates Who'sWho: RAG Election Info App (still in development)
 
 ## Updates (3rd June 2025)
-* Non-Graph retrieval pipeline ready.
+* Non-Graph retrieval pipeline is ready though metadata extraction part require further experimentation.
 * Revising Graph retrival pipeline. 
 
 
