@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
-from backend.retrieval.hybrid_retrieval import hybrid_retrieve
+from backend.non_graph_db.hybrid_retrieval import hybrid_retrieve
 
 app = FastAPI()
 

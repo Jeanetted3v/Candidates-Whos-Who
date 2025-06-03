@@ -10,20 +10,25 @@ import os
 from src.backend.utils.logging import setup_logging
 from src.backend.data_ingest.crawl import crawler_main
 from src.backend.data_ingest.llm_extract_crawl import llm_extract_main
-from src.backend.db.election_data_store import (
+from src.backend.graph_db.election_data_store import (
     store_extracted_election_data,
     init_db_connection,
     close_db_connection,
     clear_database,
     check_database_statistics
 )
+from src.backend.graph_db.semantic_search import (
+    create_vector_indexes,
+    update_candidate_embeddings
+)
 from src.backend.data_ingest.extract_crawl_model import ExtractedElectionData
+from src.backend.graph_db.keyword_search import setup_fulltext_indexes
+from src.backend.non_graph_db.data_processor import NonGraphDBDataProcessor
 
 logger = logging.getLogger(__name__)
 logger.info("Setting up logging configuration.")
 setup_logging()
 
-"""Main script for running the data ingestion pipeline."""
 
 async def data_ingest(cfg: DictConfig) -> None:
     if cfg.crawler.crawl_enabled:
@@ -65,11 +70,32 @@ async def data_ingest(cfg: DictConfig) -> None:
             logger.info(f"Stored {num_stored} constituencies in "
                         f"Neo4j database with source: {source_url}")
             check_database_statistics()
+            if cfg.graphdb.embedding_model:
+                logger.info(f"Creating vector indexes")
+                create_vector_indexes()
+                logger.info(f"Updating embeddings")
+                update_candidate_embeddings()
+                logger.info(f"Creating fulltext indexes")
+                setup_fulltext_indexes()
+            logger.info("Data ingestion process completed successfully.")
         except Exception as e:
             logger.error(f"Failed to store data in Neo4j: {e}")
         finally:
             logger.info("Closing Neo4j connection")
             close_db_connection()
+
+    if cfg.non_graph_db.enabled:
+        processor = NonGraphDBDataProcessor(
+            cfg,
+            persist_directory=cfg.non_graph_db.persist_dir,
+        )
+        if cfg.non_graph_db.clear_db:
+            logger.warning("Clearing ChromaDB before importing new data")
+            processor.clear_database()
+        if cfg.non_graph_db.delete_db:
+            logger.info("Deleting and recreating ChromaDB before ingestion")
+            processor.delete_database()
+        await processor.embed_election_data(extracted_data)
 
 @hydra.main(
     version_base=None,

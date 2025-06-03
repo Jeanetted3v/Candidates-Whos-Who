@@ -8,7 +8,7 @@ import logging
 from typing import List, Dict, Optional
 import json
 from datetime import datetime
-from src.backend.db.neo4j_manager import db_manager
+from src.backend.graph_db.neo4j_manager import db_manager
 from src.backend.data_ingest.extract_crawl_model import (
     ExtractedElectionData, 
     ExtractedConstituency,
@@ -193,114 +193,6 @@ def check_database_statistics():
     for record in results:
         logger.info(f"{record['label']}: {record['count']} nodes")
 
-
-# --- Search functions (domain-specific) ---
-def search_candidates_by_keyword(keyword: str, limit: int = 10):
-    """Search for candidates by keyword in their bio.
-    
-    Args:
-        keyword: Keyword to search for
-        limit: Maximum number of results to return
-        
-    Returns:
-        List of candidate dictionaries
-    """
-    return db_manager.find_candidates_by_text(keyword, limit)
-
-def search_constituencies_by_type(constituency_type: str):
-    """Search for constituencies by type (GRC or SMC).
-    
-    Args:
-        constituency_type: Type of constituency to search for
-        
-    Returns:
-        List of constituency dictionaries
-    """
-    query = """
-    MATCH (c:Constituency)
-    WHERE c.type = $type
-    RETURN c.name AS name, c.type AS type
-    """
-    
-    return db_manager.run_query(query, type=constituency_type)
-
-def find_candidates_by_party(party_name: str):
-    """Find all candidates belonging to a specific party.
-    
-    Args:
-        party_name: Name of the party
-        
-    Returns:
-        List of candidate dictionaries
-    """
-    query = """
-    MATCH (c:Candidate)-[:MEMBER_OF]->(p:Party {name: $party_name})
-    RETURN c.name AS name, c.constituency AS constituency, c.bio AS bio
-    """
-    
-    return db_manager.run_query(query, party_name=party_name)
-
-def find_parties_in_constituency(constituency_name: str):
-    """Find all parties contesting in a specific constituency.
-    
-    Args:
-        constituency_name: Name of the constituency
-        
-    Returns:
-        List of party names
-    """
-    query = """
-    MATCH (p:Party)-[:CONTESTED]->(c:Constituency {name: $constituency_name})
-    RETURN p.name AS party_name
-    """
-    
-    result = db_manager.run_query(query, constituency_name=constituency_name)
-    return [record["party_name"] for record in result]
-
-# --- Semantic search functions ---
-def create_vector_index_for_candidates(dimension: int = 1536):
-    """Create a vector index for candidate bio embeddings.
-    
-    Args:
-        dimension: Dimension of the embedding vectors
-    """
-    query = f"""
-    CALL db.index.vector.createNodeIndex(
-        'candidate_bio_index',
-        'Candidate',
-        'embedding',
-        {dimension},
-        'cosine'
-    )
-    """
-    
-    db_manager.run_query(query)
-
-def search_candidates_by_semantic_query(query_embedding: List[float], limit: int = 5):
-    """Search for candidates using semantic similarity to a query.
-    
-    Args:
-        query_embedding: Vector embedding of the query
-        limit: Maximum number of results to return
-        
-    Returns:
-        List of candidate dictionaries with similarity scores
-    """
-    query = """
-    CALL db.index.vector.queryNodes(
-        'candidate_bio_index',
-        $limit,
-        $embedding
-    ) YIELD node, score
-    RETURN node.name AS name, 
-           node.party AS party, 
-           node.constituency AS constituency,
-           node.bio AS bio,
-           score
-    ORDER BY score DESC
-    """
-    
-    return db_manager.run_query(query, limit=limit, embedding=query_embedding)
 
 # --- Database management ---
 def close_db_connection():

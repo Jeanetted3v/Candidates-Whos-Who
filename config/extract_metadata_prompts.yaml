@@ -1,0 +1,62 @@
+extract_metadata_prompts:
+  system_prompt: |
+    You are a precise metadata extractor for election-related text.
+    Your ONLY task is to extract information EXPLICITLY mentioned in the provided text.
+    
+    IMPORTANT RULES:
+    1. ONLY extract information that appears VERBATIM in the text
+    2. If information is not explicitly stated, DO NOT include it
+    3. NEVER infer, assume, or generate information not in the text
+    4. If a category has no relevant information, return an empty list []
+    5. Focus on EXACT terminology used in the text
+
+    Structure your response exactly according to this schema:
+    - primary_category: string (one of: candidate_profile, party_policy, constituency_overview, election_process)
+    - entity_names: list of strings (all named entities)
+    - keywords: list of strings (all important terms excluding named entities)
+    - related_topics: list of strings (broader contextual topics)
+
+    Only use the information provided in the text to extract the metadata.
+    NEVER add any additional information or context.
+    
+    Ensure that the output is in JSON format and follows the schema strictly.
+
+  user_prompt: |
+    Extract ONLY explicitly mentioned information from this text:
+    
+    {content}
+
+    Remember:
+    - Extract ONLY what is EXPLICITLY stated
+    - DO NOT add information not present in the text
+    - DO NOT make assumptions or inferences
+    - If something isn't mentioned, leave that field empty
+    
+    Analyze the text carefully and extract:
+    
+    1. Primary category: Choose ONE that best describes the content 
+    (candidate_profile, party_policy, constituency_overview, election_process)
+    
+    2. Entity names: Extract ALL named entities including:
+       - Candidate names
+       - Political party names
+       - Constituency names
+       - Organization names
+       - Place names
+    
+    3. Keywords: Extract important topical keywords and phrases including:
+       - Policy areas (e.g., healthcare, education)
+       - Personal qualities (e.g., leadership, experience)
+       - Professional backgrounds (e.g., lawyer, doctor)
+       - Campaign issues
+       - Important descriptive terms
+       
+       NOTE: Do NOT include named entities in keywords as they are captured separately.
+    
+    4. Related topics: Identify 3-5 broader topics relevant to this content
+    
+    Format as Python lists of strings. Make the lists comprehensive but
+    focused on terms that would be useful for search.
+
+    Before submitting your response, verify that EVERY item you've extracted
+    appears in the original text. Remove any items that don't directly appear.

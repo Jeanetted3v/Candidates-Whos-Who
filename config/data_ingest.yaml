@@ -8,11 +8,20 @@ crawler:
   extract_json_enabled: false
   llm: "openai:gpt-4.1-mini"
 
-
 graphdb:
-  enabled: true
+  enabled: false
   clear_before_import: true
+  embedding_model: "text-embedding-3-small"
+  
+non_graph_db:
+  enabled: true
+  clear_db: true
+  delete_db: true
+  llm_model: "openai:gpt-4.1-mini"
+  embedding_model: "text-embedding-3-small"
+  persist_dir: "./data/chroma_embeddings"
 
 defaults:
   - _self_
   - extract_crawl_prompts
+  - extract_metadata_prompts

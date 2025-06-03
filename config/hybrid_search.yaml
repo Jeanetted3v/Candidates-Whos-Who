@@ -1,0 +1,8 @@
+graphdb:
+  embedding_model: "text-embedding-3-small"
+  semantic_weight: 0.7
+  fulltext_weight: 0.3
+
+defaults:
+  - _self_
+  - hybrid_search_prompts

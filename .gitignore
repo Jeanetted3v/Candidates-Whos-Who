@@ -8,6 +8,7 @@ __pycache__/
 
 # data 
 /data
+*.pdf
 !data/.gitkeep
 !data/crawled_data/images/.gitkeep
 !data/crawled_data/images/candidates/.gitkeep

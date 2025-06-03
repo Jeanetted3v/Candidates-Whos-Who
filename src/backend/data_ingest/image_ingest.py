@@ -11,7 +11,7 @@ import re
 from typing import List
 from PIL import Image
 import openai
-from backend.db.neo4j_chunks import add_chunk_to_candidate, add_chunk_to_party, add_chunk_to_constituency
+from backend.graph_db.neo4j_chunks import add_chunk_to_candidate, add_chunk_to_party, add_chunk_to_constituency
 
 # Set your OpenAI API key (or use dotenv)
 openai.api_key = os.getenv("OPENAI_API_KEY")
